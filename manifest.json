@@ -1,0 +1,9 @@
+{
+	"id": "workout-logger",
+	"name": "Workout Logger",
+	"version": "0.1.0",
+	"minAppVersion": "0.15.0",
+	"description": "Log workout sets directly into markdown tables. Tap-friendly modal for editing weight × reps on mobile.",
+	"author": "Garrett",
+	"isDesktopOnly": false
+}
