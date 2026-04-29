@@ -210,7 +210,8 @@ export default class WorkoutLoggerPlugin extends Plugin {
               checkInput.type = "checkbox";
               checkInput.checked = isCompleted;
               checkInput.className = "wl-cell-checkbox";
-              checkInput.addEventListener("change", () => {
+              checkInput.addEventListener("click", (e) => {
+                e.stopPropagation();
                 const line = parseInt(cell.dataset.wlLine ?? "", 10);
                 const setIdx = parseInt(cell.dataset.wlSetIdx ?? "", 10);
                 if (isNaN(line) || isNaN(setIdx)) return;
@@ -283,7 +284,8 @@ export default class WorkoutLoggerPlugin extends Plugin {
             checkInput.type = "checkbox";
             checkInput.checked = isCompleted;
             checkInput.className = "wl-cell-checkbox";
-            checkInput.addEventListener("change", () => {
+            checkInput.addEventListener("click", (e) => {
+              e.stopPropagation();
               const line = parseInt(cell.dataset.wlLine ?? "", 10);
               const setIdx = parseInt(cell.dataset.wlSetIdx ?? "", 10);
               if (isNaN(line) || isNaN(setIdx)) return;
