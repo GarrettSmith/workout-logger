@@ -139,6 +139,10 @@ export default class WorkoutLoggerPlugin extends Plugin {
 
             cell.dataset.wlLine = String(sourceLine);
 
+            // No checkbox? Not a set — skip it entirely.
+            const hasCheckbox = text.startsWith("[");
+            if (!hasCheckbox) return;
+
             if (sepIdx === -1) {
               // Checkbox-only cell — mark and track for the per-row + button.
               // Even if it has no weight×reps, we still want the per-row + to
@@ -185,8 +189,12 @@ export default class WorkoutLoggerPlugin extends Plugin {
             }
 
             const isCompleted = text.startsWith("[x]");
+            const hasCheckbox = text.startsWith("[");
             const inner = text.replace(/^\[(x| )\]\s*/i, "");
             const sepIdx = inner.indexOf(MULTIPLIER);
+
+            // No checkbox? Not a set — skip it.
+            if (!hasCheckbox) return;
 
             if (sepIdx === -1) {
               // ── Checkbox-only cell ─────────────────────────────────────────────
