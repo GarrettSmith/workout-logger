@@ -242,7 +242,7 @@ export default class WorkoutLoggerPlugin extends Plugin {
                   if (isNaN(setIdx)) return;
                   new SetEditModal(
                     plugin.app,
-                    { weight: "", reps: 0, completed: false },
+                    { weight: "", reps: 0, completed: false, hasCheckbox: true },
                     line,
                     setIdx,
                     true // isAdding
@@ -318,6 +318,7 @@ export default class WorkoutLoggerPlugin extends Plugin {
                 weight: weightPart,
                 reps: parseInt(repsPart, 10) || 0,
                 completed: isCompleted,
+                hasCheckbox: true,
               };
               new SetEditModal(plugin.app, set, line, setIdx).open();
             });
@@ -364,7 +365,7 @@ export default class WorkoutLoggerPlugin extends Plugin {
                 // so the user can enter weight and reps.
                 new SetEditModal(
                   plugin.app,
-                  { weight: "", reps: 0, completed: false },
+                  { weight: "", reps: 0, completed: false, hasCheckbox: true },
                   sourceLine,
                   setIdx,
                   true
@@ -376,6 +377,7 @@ export default class WorkoutLoggerPlugin extends Plugin {
                 weight: lastWeightPart,
                 reps: parseInt(lastRepsPart, 10) || 0,
                 completed: false,
+                hasCheckbox: true,
               };
               const next = insertSetAfter(c, sourceLine, setIdx, srcSet);
               if (next !== c) {

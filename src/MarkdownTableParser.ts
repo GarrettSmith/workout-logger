@@ -4,38 +4,49 @@ const MULTIPLIER = "\u00D7"; // U+00D7 MULTIPLICATION SIGN
 
 /**
  * Parse a set cell value into SetData.
- * Formats:
+ * A cell is ONLY treated as a set if it starts with a checkbox ([x] or [ ]).
+ *
+ * Formats (checkbox REQUIRED):
  *   [x] Foo×N   → completed, weight="Foo", reps=N
- *   Foo×N       → uncompleted, weight="Foo", reps=N
- *   [x] N       → completed, weight="", reps=N
- *   N           → uncompleted, weight="", reps=N
- *   (empty)     → uncompleted, weight="", reps=0
+ *   [x] N        → completed, weight="", reps=N
+ *   [ ] Foo×N    → uncompleted, weight="Foo", reps=N
+ *   [ ] N        → uncompleted, weight="", reps=N
+ *   (empty)      → uncompleted, weight="", reps=0
+ *
+ * Anything without a checkbox — plain numbers ("4"), ranges ("5–8"),
+ * weight×reps without checkbox ("135×8") — is NOT a set.
  */
 export function parseSetCell(cell: string): SetData {
   const trimmed = cell.trim();
   if (!trimmed) {
-    return { weight: "", reps: 0, completed: false };
+    return { weight: "", reps: 0, completed: false, hasCheckbox: false };
   }
 
-  const checked = trimmed.startsWith("[x] ") || trimmed.startsWith("[x]");
-  const unchecked = trimmed.startsWith("[ ] ") || trimmed.startsWith("[ ]");
-  const afterCheck = trimmed.replace(/^\[(x| )\]\s*/i, "");
+  // Must have checkbox prefix to be a valid set
+  const hasCheckbox = trimmed.startsWith("[x]") || trimmed.startsWith("[x] ") ||
+                      trimmed.startsWith("[ ]") || trimmed.startsWith("[ ] ");
+  if (!hasCheckbox) {
+    return { weight: "", reps: 0, completed: false, hasCheckbox: false };
+  }
 
+  const checked = trimmed.startsWith("[x]");
+  const afterCheck = trimmed.replace(/^\[(x| )\]\s*/i, "");
   const multIdx = afterCheck.indexOf(MULTIPLIER);
+
   if (multIdx === -1) {
     // No × found — treat whole thing as reps count or just weight
     const num = parseInt(afterCheck.trim(), 10);
     if (!isNaN(num)) {
-      return { weight: "", reps: num, completed: checked };
+      return { weight: "", reps: num, completed: checked, hasCheckbox: true };
     }
-    return { weight: afterCheck.trim(), reps: 0, completed: checked };
+    return { weight: afterCheck.trim(), reps: 0, completed: checked, hasCheckbox: true };
   }
 
   const weight = afterCheck.slice(0, multIdx).trim();
   const repsStr = afterCheck.slice(multIdx + 1).trim();
   const reps = parseInt(repsStr, 10);
 
-  return { weight, reps: isNaN(reps) ? 0 : reps, completed: checked };
+  return { weight, reps: isNaN(reps) ? 0 : reps, completed: checked, hasCheckbox: true };
 }
 
 /**
@@ -99,6 +110,17 @@ export function parseTable(
     const exerciseCell = cells[0] ?? "";
     const setCells = cells.slice(1);
     const sets = setCells.map(parseSetCell);
+
+    // Skip rows where the exercise cell itself looks like a set
+    // (contains × or starts with [) — those belong to the row above, not this one
+    const looksLikeSet = exerciseCell.includes(MULTIPLIER) ||
+                         exerciseCell.trim().startsWith("[");
+    if (looksLikeSet) continue;
+
+    // Skip rows where no set cells have a checkbox
+    // A cell with just [ ] (no weight/reps) still counts as a valid set
+    const hasAnySet = sets.some((s) => s.hasCheckbox);
+    if (!hasAnySet) continue;
 
     return {
       exerciseName: exerciseCell,

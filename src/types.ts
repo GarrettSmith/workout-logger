@@ -2,6 +2,7 @@ export interface SetData {
   weight: string; // "135", "Red", "Blue", "" if empty
   reps: number;   // 0 if empty
   completed: boolean;
+  hasCheckbox: boolean; // true if cell had a [x] or [ ] prefix
 }
 
 export interface ExerciseRow {

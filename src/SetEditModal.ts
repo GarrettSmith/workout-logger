@@ -152,6 +152,7 @@ export class SetEditModal extends Modal {
         weight: this.savedWeight,
         reps: this.savedReps,
         completed: false,
+        hasCheckbox: true,
       };
       next = insertSetAfter(content, this.sourceLine, this.cellIdx - 1, newSet);
     } else {
@@ -160,6 +161,7 @@ export class SetEditModal extends Modal {
         weight: this.savedWeight,
         reps: this.savedReps,
         completed: currentSet.completed,
+        hasCheckbox: currentSet.hasCheckbox,
       };
       next = updateSetCell(content, this.sourceLine, this.cellIdx, newSet);
     }
