@@ -214,16 +214,6 @@ export default class WorkoutLoggerPlugin extends Plugin {
                 e.stopPropagation();
                 const line = parseInt(cell.dataset.wlLine ?? "", 10);
                 const setIdx = parseInt(cell.dataset.wlSetIdx ?? "", 10);
-                console.log("[DEBUG] Checkbox-only click:", {
-                  line,
-                  setIdx,
-                  wlLine: cell.dataset.wlLine,
-                  wlSetIdx: cell.dataset.wlSetIdx,
-                  isNaN_line: isNaN(line),
-                  isNaN_setIdx: isNaN(setIdx),
-                  textContent: cell.textContent,
-                  innerHTML: cell.innerHTML,
-                });
                 if (isNaN(line) || isNaN(setIdx)) return;
 
                 const view =
@@ -235,10 +225,6 @@ export default class WorkoutLoggerPlugin extends Plugin {
 
                 const c = editor.getValue();
                 const next = toggleSetCompleted(c, line, setIdx);
-                console.log("[DEBUG] Toggle result:", {
-                  changed: next !== c,
-                  next_line: next.split("\n")[line],
-                });
                 if (next !== c) {
                   editor.setValue(next);
                   plugin.app.vault.modify(f, next);
