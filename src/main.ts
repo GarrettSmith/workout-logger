@@ -65,16 +65,52 @@ export default class WorkoutLoggerPlugin extends Plugin {
       const content = activeView.editor.getValue();
       const allLines = content.split("\n");
 
-      // Process each table independently so multiple tables on one page work correctly.
-      // Keep a running offset into sourceRowMap as we consume entries per-table.
+      // Process each table in this block independently.
+      // Each post-processor call may contain 0–N tables, and tables from different
+      // blocks on the same page each get their own call with sourceRowMapOffset=0.
+      // We handle this by using the DOM to find each table's unique starting line.
       let sourceRowMapOffset = 0;
 
       for (const table of tables) {
-        // Build sourceRowMap lazily as we discover tables in the source.
-        // Track the actual last line consumed so the next table starts after it.
+        const tableRows = Array.from(table.querySelectorAll<HTMLTableRowElement>("tr"));
+        // Find the source line where this table starts by matching the first
+        // non-header data row's unique exercise name in the source.
+        let tableStartLine = 0;
+        for (let rowIdx = 1; rowIdx < tableRows.length; rowIdx++) {
+          const cells = tableRows[rowIdx]!.querySelectorAll<HTMLTableCellElement>("td, th");
+          const exerciseCell = cells[1]?.textContent?.trim() ?? "";
+          if (!exerciseCell) continue;
+          // Search allLines from sourceRowMapOffset for this exercise in a table row
+          for (let i = sourceRowMapOffset; i < allLines.length; i++) {
+            const trimmed = allLines[i]!.trim();
+            if (trimmed.startsWith("|") && trimmed.endsWith("|") &&
+                !/^\|[\s\-:|]+\|$/.test(trimmed)) {
+              const cells2 = trimmed.split("|").map((c) => c.trim());
+              if (cells2[1] === exerciseCell) {
+                tableStartLine = i;
+                break;
+              }
+            }
+          }
+          if (tableStartLine > 0) break;
+        }
+        if (tableStartLine === 0) {
+          // Fallback: try to detect from header row content
+          const headerCells = tableRows[0]?.querySelectorAll<HTMLTableCellElement>("td, th");
+          const planHeader = headerCells?.[1]?.textContent?.trim() ?? "";
+          for (let i = sourceRowMapOffset; i < allLines.length; i++) {
+            const trimmed = allLines[i]!.trim();
+            if (trimmed.includes(planHeader) && !/^\|[\s\-:|]+\|$/.test(trimmed)) {
+              tableStartLine = i;
+              break;
+            }
+          }
+        }
+
+        // Build sourceRowMap for this table, scanning from tableStartLine
         const sourceRowMap: number[] = [];
-        let lastLineConsumed = sourceRowMapOffset;
-        for (let i = sourceRowMapOffset; i < allLines.length; i++) {
+        let lastLineConsumed = tableStartLine;
+        for (let i = tableStartLine; i < allLines.length; i++) {
           const trimmed = allLines[i]!.trim();
           // Skip separator rows like |---|---|
           if (/^\|[\s\-:|]+\|$/.test(trimmed)) continue;
@@ -87,11 +123,9 @@ export default class WorkoutLoggerPlugin extends Plugin {
             }
           }
           // Stop once we've collected enough source rows for this table's rendered rows
-          if (sourceRowMap.length >= table.querySelectorAll("tr").length) break;
+          if (sourceRowMap.length >= tableRows.length) break;
         }
         sourceRowMapOffset = lastLineConsumed + 1;
-
-        const tableRows = Array.from(table.querySelectorAll<HTMLTableRowElement>("tr"));
 
         // ── Pre-scan: does this table have any weight×reps cells anywhere? ─────
         // The − button only appears in tables that also have real weight×reps sets.
@@ -214,16 +248,6 @@ export default class WorkoutLoggerPlugin extends Plugin {
                 e.stopPropagation();
                 const line = parseInt(cell.dataset.wlLine ?? "", 10);
                 const setIdx = parseInt(cell.dataset.wlSetIdx ?? "", 10);
-                console.log("[DEBUG] Checkbox-only click:", {
-                  line,
-                  setIdx,
-                  wlLine: cell.dataset.wlLine,
-                  wlSetIdx: cell.dataset.wlSetIdx,
-                  isNaN_line: isNaN(line),
-                  isNaN_setIdx: isNaN(setIdx),
-                  textContent: cell.textContent,
-                  innerHTML: cell.innerHTML,
-                });
                 if (isNaN(line) || isNaN(setIdx)) return;
 
                 const view =
@@ -235,10 +259,6 @@ export default class WorkoutLoggerPlugin extends Plugin {
 
                 const c = editor.getValue();
                 const next = toggleSetCompleted(c, line, setIdx);
-                console.log("[DEBUG] Toggle result:", {
-                  changed: next !== c,
-                  next_line: next.split("\n")[line],
-                });
                 if (next !== c) {
                   editor.setValue(next);
                   plugin.app.vault.modify(f, next);
